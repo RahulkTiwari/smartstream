@@ -1,0 +1,96 @@
+- hosts: OPS_ENV
+  order: sorted
+
+
+  name: Copy file from one remote server to an other remote server.
+  tasks:
+
+    - name: Send Emails on start
+      shell: echo -e "Hello Team,\n\nPlease Note that we are starting today's ETD API file loads.\n\nRegards,\nDevOps Team" | mailx -s "Alert ETD API file loads are started" -r devos_alerts@smartstreamrdu.com Irfan.Ahemad@smartstreamrdu.com
+      run_once: true
+      
+    - name: Unzip files on FCA PROD app2
+      shell: 'cd /data/input/; for g in *.gz; do gunzip $g; done'
+      run_once: true
+      
+      
+    - name: Start loader run.sh on FCA PROD app2
+      shell: 'cd /home/hduser/ETDHistoricalData/ETDApiLoader/; nohup ./run_etd_history.sh > run.out 2>&1 &'
+      run_once: true
+      
+      
+    - name: Get loader PID on FCA PROD app2
+      shell: "ps -eaf | grep java | grep EtdHFileGenerator | grep -v grep | awk '{print $2}'"
+      run_once: true
+      register: running_processes
+    - debug: var=running_processes.stdout_lines
+    
+    - name: Check loader PID on FCA PROD app2
+      shell: "while kill -0 {{ item }}; do sleep 900;done;"
+      with_items: "{{ running_processes.stdout_lines }}"
+      run_once: true
+
+    - name: Get timestamp inside folders on FCA PROD app2
+      shell: "cd /data/output/product; ls"
+      run_once: true
+      register: timestamp
+    - debug: var=timestamp.stdout
+            
+    - name: Put files in HDFS on FCA PROD app2
+      shell: hdfs dfs -put {{ item }}
+      run_once: true
+      register: Putdataoutput  
+      with_items: 
+        - /data/output/product/{{ timestamp.stdout }}/*.csv /etd_data/product
+        - /data/output/contract/"{{ timestamp.stdout }}"/*.csv /etd_data/contract
+        - /data/output/ticker/"{{ timestamp.stdout }}"/*.csv /etd_data/ticker
+        - /data/output/ric/"{{ timestamp.stdout }}"/*.csv /etd_data/ric
+        - /data/output/occSym/"{{ timestamp.stdout }}"/*.csv /etd_data/occ
+        - /data/output/bloomberg/"{{ timestamp.stdout }}"/*.csv /etd_data/bbg
+        - /data/output/bloombergTicker/"{{ timestamp.stdout }}"/*.csv /etd_data/bbg
+        - /data/output/isin/"{{ timestamp.stdout }}"/*.csv /etd_data/isin 
+    - debug: var=Putdataoutput.stdout_lines          
+   
+    - name: Loads data files in Hbase tables on FCA PROD app2
+      shell: "hbase org.apache.hadoop.hbase.mapreduce.ImportTsv {{ item }}"
+      run_once: true
+      register: Loadsdataoutput    
+      with_items:
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:d etd_product_history /etd_data/product/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:dt,data:d,data:product_id etd_contract_history /etd_data/contract/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:c_id etd_contract_isin_history /etd_data/isin/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:c_id etd_contract_ticker_history /etd_data/ticker/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:c_id etd_contract_ric_history /etd_data/ric/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:c_id etd_contract_occ_history /etd_data/occ/*.csv"
+        - "-Dimporttsv.columns=HBASE_ROW_KEY,data:c_id etd_contract_bbg_history /etd_data/bbg/*.csv"
+    - debug: var=Loadsdataoutput.stdout_lines  
+    
+    - name: Delete files from input & output folders on FCA PROD app2
+      shell: "rm -rf {{ item }}"
+      run_once: true 
+      with_items:
+        - /data/input/*.xml
+        - /data/output/*
+        
+    - name: Delete files from input & output folders on FCA PROD app2
+      shell: "rm -rf {{ item }}"
+      when: ansible_host == '192.168.105.208'
+      with_items:
+        - /data/ETD_API_FILES/*.xml.gz
+
+    - name: Delete files from HDFS folders on FCA PROD app2
+      shell: "hdfs dfs -rm {{ item }}"
+      run_once: true 
+      with_items:
+        - /etd_data/product/*
+        - /etd_data/contract/*
+        - /etd_data/ticker/*
+        - /etd_data/ric/*
+        - /etd_data/occ/*
+        - /etd_data/bbg/*
+        - /etd_data/isin/*
+
+    - name: Send Emails on completions
+      shell: echo -e "Hello Team,\n\nPlease Note that today's ETD API file loads are completed.\n\nRegards,\nDevOps Team" | mailx -s "Alert ETD API file loads are completed" -r devos_alerts@smartstreamrdu.com Irfan.Ahemad@smartstreamrdu.com
+      run_once: true
+      

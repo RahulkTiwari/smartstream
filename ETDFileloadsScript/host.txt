@@ -1,0 +1,4 @@
+[OPS_ENV]
+FCAapp2ukprod ansible_host=192.168.105.185 ansible_ssh_user=hduser ansible_ssh_pass=H4sna8jBJ26N3XUB
+mofongo ansible_host=192.168.105.117 ansible_ssh_user=mofongo ansible_ssh_pass=p1n3y1
+devops ansible_host=192.168.105.208 ansible_ssh_user=udm ansible_ssh_pass=ngudm@2021

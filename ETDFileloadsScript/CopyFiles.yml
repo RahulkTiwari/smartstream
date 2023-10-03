@@ -1,0 +1,38 @@
+- hosts: OPS_ENV
+  order: sorted
+
+
+  name: Copy file from one remote server to an other remote server.
+  tasks:
+    
+    - name: PWD
+      shell: "cd /dis01/Citadel/$(date +'%Y/%m'); pwd"
+      when: ansible_host == '192.168.105.117'
+      register: pwdpath
+    - debug: var=pwdpath.stdout
+    
+    - name: List files
+      shell: "cd {{ pwdpath.stdout }}; ls *`date +'%Y%m%d' --date='-1 day'`*xml.gz"
+      when: ansible_host == '192.168.105.117'
+      register: ListOfFiles
+    - debug: var=ListOfFiles.stdout_lines
+
+    - name: Fetch the file from mofongo to DevOps server
+      fetch: src={{ pwdpath.stdout }}/{{ item }} dest=/data/ETD_API_FILES/ flat=yes
+      when: ansible_host == '192.168.105.117'
+      with_items:
+              - "{{ ListOfFiles.stdout_lines }}" 
+
+    - name: Copy the file from DevOps server to FCA PROD app2
+      copy: 
+          src: "{{ item }}"
+          dest: /data/input/
+      when: ansible_host == '192.168.105.185'
+      run_once: true
+      with_fileglob: "/data/ETD_API_FILES/RDU*xml.gz"
+      
+    - name: Delete files from DevOps
+      shell: "rm -rf {{ item }}"
+      when: ansible_host == '192.168.105.208'
+      with_items:
+        - /data/ETD_API_FILES/*.xml.gz

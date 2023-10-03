@@ -1,0 +1,130 @@
+{
+  "dependencies": {
+    ".I": [
+      {
+        "downloadedFileValidation": [
+          "is_saturday"
+        ],
+        "sentFileValidation": [
+          "is_Friday_Maintenance_Sent"
+        ],
+        "Comment" : "The weekly (Saturday's) initialization file should be processed after the Friday's Daily Maintenance  file."
+      }
+    ],
+    ".V": [
+      {
+        "downloadedFileValidation": [
+          "is_saturday"
+        ],
+        "sentFileValidation": [
+          "is_Friday_Maintenance_Sent"
+        ],
+        "Comment" : "The weekly (Saturday's) initialization file should be processed after the Friday's Daily Maintenance file."
+      }
+    ],
+    ".M": [
+      {
+        "downloadedFileValidation": [
+          "isEMFile",
+          "is_saturday"
+        ],
+        "sentFileValidation": [
+          "is_Saturday_Full_Sent"
+        ],
+        "Comment" : "The Daily Maintenance & EM files with a date equal to or higher than Saturday should be processed after the weekly (Saturday's) initialization file"
+      },
+      {
+        "downloadedFileValidation": [
+          "isEMFile",
+          "notFirstEMFileNo"
+        ],
+        "sentFileValidation": [
+          "isPrevEMFileNoSent"
+        ],
+         "Comment" : "EM0x file is always processed before EM1x file, and EM12 is always processed before EM22"
+      },
+      {
+        "downloadedFileValidation": [],
+        "sentFileValidation": [
+          "isYesterdaysFileSent"
+        ],
+        "Comment" : "The Daily  Maintenance & EM files on a specific day is always processed before Daily Maintenance file for the next day based on the date in the file name."
+      }] ,
+      ".W" : [
+      {
+        "downloadedFileValidation": [
+          "is_saturday"
+        ],
+        "sentFileValidation": [
+          "is_Saturday_Full_Sent"
+        ],
+        "Comment" : "The Daily Maintenance & EM files with a date equal to or higher than Saturday should be processed after the weekly (Saturday's) initialization file"
+      },
+      {
+        "downloadedFileValidation": [
+          "isEMFile",
+          "notFirstEMFileNo"
+        ],
+        "sentFileValidation": [
+          "isPrevEMFileNoSent"
+        ],
+         "Comment" : "EM0x file is always processed before EM1x file, and EM12 is always processed before EM22"
+      },
+      {
+        "downloadedFileValidation": [],
+        "sentFileValidation": [
+          "isYesterdaysFileSent"
+        ],
+        "Comment" : "The Daily Maintenance & EM files on a specific day is always processed before Daily Maintenance file for the next day based on the date in the file name."
+      }
+    ]
+  },
+  "camel_download_location": "daq01/camel_downloaded",
+  "sent_files_location": "daq01/camel_sent",
+  "Waiting_files_location": "daq01/camel_waiting",
+  "FileNameIndex": {
+    "EM": {
+      "em": 0,
+      "fileNo": 2,
+      "region": 3,
+      "file_year" : 4,
+      "file_month" : 8 ,
+      "file_date" : 10 ,
+      "file_code" : 15,
+      "year" : 19,
+      "month": 23,
+      "date": 25
+    },
+    "refinitive": {
+      "file_code": 0,
+      "year" : 4,
+      "month": 8,
+      "date": 10
+    }
+  },
+  "MessageProducerConfig": {
+    "Type": "PRINT",
+    "Host": "localhost",
+    "Port": "9092",
+    "Username": "UDM",
+    "Password": "UDM",
+    "TOPIC": "newUdlQueue",
+    "QUEUE": "",
+    "Template" : [{"fileName": null ,"fileSize": null , "directory": null ,"dataSource":"trdse","fileType":"XE"}]
+  },
+  "Logging" : {
+    "logSuccessfulDependencies" : true ,
+    "logFailedDependencies" : true,
+    "logIgnoredDependencies" : true,
+    "logFilterFiles" : true,
+    "logCommon" : true
+  },
+  "Execution" : {
+      "RetryAttempt" : 1 ,
+      "CheckWaiting" : true
+  },
+  "filterFiles" : [
+    {"id" : 1 ,"regex" : "^EM[0-9]{10}.(M|W)$" , "moveFileTo" :  "daq01/FilteredFolder" },
+    {"id" : 2 ,"regex" : "delete_logs" , "moveFileTo" :  null  }
+  ]
+}
